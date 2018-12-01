@@ -18,8 +18,15 @@ function TicTacToe(readline) {
 
   _init(readline);
 
+  /* helper functions */
+
   const getRandomNumber = n => {
     return Math.floor(Math.random() * boardRecord.empty.length - 0);
+  };
+
+  const stringToInt = stringInput => {
+    let inputElements = stringInput.split(" ");
+    return inputElements.map((el, i, arr) => (arr[i] = parseInt(el)));
   };
 
   const buildRecord = () => {
@@ -38,11 +45,12 @@ function TicTacToe(readline) {
     boardRecord = data;
   };
 
+  /* game functions */
+
   const choosePlayer = () => {
     return new Promise((resolve, reject) => {
       rl.question("Choose your player \n", input => {
         if ((input === "x") | (input === "o")) {
-          savePlayers(input);
           resolve(input);
         } else {
           reject();
@@ -66,6 +74,30 @@ function TicTacToe(readline) {
     console.log(`Your mark is : ${input}`);
   };
 
+  const rotatePlayer = mark => {
+    currentMark = playerMarks.indexOf(mark) ? playerMarks[0] : playerMarks[1];
+  };
+
+  const drawInterface = () => {
+    const space = "     ";
+    const greeting = `${space}TicTacToe.ʕ•ᴥ•ʔ`;
+
+    console.log(`\n\ ${greeting}  \n\ `);
+
+    const lineSeparator = `${space} +-----------+`;
+    for (let i = 0; i < 3; i += 1) {
+      console.log(lineSeparator);
+      let row = `${space} |`;
+      for (let k = 0; k < 3; k += 1) {
+        boardRecord.board[i][k]
+          ? (row += " " + boardRecord.board[i][k] + " |")
+          : (row += "   |");
+      }
+      console.log(row);
+    }
+    console.log(`${lineSeparator} \n\  \n\ `);
+  };
+
   const addMarkToRecord = (currentMark, position) => {
     let indexToRemove;
     boardRecord.board[position[0]][position[1]] = currentMark;
@@ -73,29 +105,16 @@ function TicTacToe(readline) {
     boardRecord.empty.splice(indexToRemove, 1);
   };
 
-  const checkTheStatus = currentMark => {
-    if (boardRecord.empty.length === 0) {
-      console.log("Replay the game");
-      rl.close();
-      return;
-    } else if (isThereWinner(currentMark)) {
-      rl.close();
-      return;
-    }
-  };
-
-  const rotatePlayer = mark => {
-    currentMark = playerMarks.indexOf(mark) ? playerMarks[0] : playerMarks[1];
-  };
-
   const addMarkToBoard = position => {
     addMarkToRecord(currentMark, position);
     drawInterface();
     checkTheStatus(currentMark);
   };
-  const stringToInt = stringInput => {
-    let inputElements = stringInput.split(" ");
-    return inputElements.map((el, i, arr) => (arr[i] = parseInt(el)));
+
+  const playMove = () => {
+    currentMark === playersRecord[0].mark
+      ? getClientInput().then(addMarkToBoard, playMove)
+      : pcMove().then(addMarkToBoard);
   };
 
   const getClientInput = () => {
@@ -127,11 +146,15 @@ function TicTacToe(readline) {
     });
   };
 
-  const playMove = () => {
-    currentMark === playersRecord[0].mark
-      ? getClientInput().then(addMarkToBoard, playMove)
-      : pcMove().then(addMarkToBoard);
+  const playGame = () => {
+    choosePlayer().then(input => {
+      savePlayers(input);
+      drawInterface();
+      playMove();
+    }, playGame);
   };
+
+  /* verify winner */
 
   const isThereWinner = player => {
     let playerString = player + player + player;
@@ -167,7 +190,6 @@ function TicTacToe(readline) {
     }
 
     if (winner) {
-      console.log(winner + " wins!");
       return true;
     } else {
       rotatePlayer(currentMark);
@@ -176,34 +198,25 @@ function TicTacToe(readline) {
     }
   };
 
-  const drawInterface = () => {
-    const space = "     ";
-    const greeting = `${space}TicTacToe.ʕ•ᴥ•ʔ`;
-    console.log(`\n\ ${greeting}  \n\ `);
-
-    const lineSeparator = `${space} +-----------+`;
-    for (let i = 0; i < 3; i += 1) {
-      console.log(lineSeparator);
-      let row = `${space} |`;
-      for (let k = 0; k < 3; k += 1) {
-        boardRecord.board[i][k]
-          ? (row += " " + boardRecord.board[i][k] + " |")
-          : (row += "   |");
-      }
-      console.log(row);
+  const checkTheStatus = currentMark => {
+    if (boardRecord.empty.length === 0) {
+      console.log("Replay the game");
+      rl.close();
+      return;
+    } else if (isThereWinner(currentMark)) {
+      console.log(currentMark + " wins!");
+      rl.close();
+      return;
     }
-    console.log(`${lineSeparator} \n\  \n\ `);
   };
 
   return {
     start: function() {
       buildRecord();
-      choosePlayer()
-        .then(drawInterface, choosePlayer)
-        .then(playMove);
+      playGame();
     }
   };
 }
 
-ticTacToe = new TicTacToe(readline);
+let ticTacToe = new TicTacToe(readline);
 ticTacToe.start();
